@@ -67,6 +67,8 @@ h2{font-size:12px;margin:0 0 8px;color:var(--mu);text-transform:uppercase;letter
 .now{position:absolute;left:0;right:0;border-top:2px solid var(--bad);z-index:3}
 .ev{position:absolute;border-radius:7px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,var(--card));color:var(--tx)}
 .ev.bad{outline:2px solid var(--bad)}
+.ev.livre{border-left-style:dashed;opacity:.7;background:color-mix(in srgb,var(--c) 8%,var(--card))}
+details.cfg{margin-top:10px;font-size:13px}details.cfg summary{cursor:pointer;color:var(--mu)}details.cfg .row{margin-top:8px}
 .note{font-size:12px;color:var(--mu);margin-top:8px}
 #st.ok{color:var(--ok)}#st.err{color:var(--bad)}
 </style>
@@ -102,6 +104,9 @@ h2{font-size:12px;margin:0 0 8px;color:var(--mu);text-transform:uppercase;letter
       <div class="row"><input type="text" id="txt" placeholder="Ex.: reunião com fornecedor amanhã às 14h" enterkeyhint="send"><button class="p" id="add">Adicionar</button></div>
       <div id="prev"></div>
       <div class="legend" id="legend"></div>
+      <details class="cfg"><summary>⚙ Eventos que não bloqueiam horário</summary>
+        <div class="note">Palavras no título, separadas por vírgula. Esses eventos não geram conflito e não ocupam o horário livre. Também vale marcar o evento como "Livre" no Google Agenda.</div>
+        <div class="row"><input type="text" id="lvtxt" placeholder="água, lembrete, alongar"><button id="lvsave">Salvar</button></div></details>
       <div class="note" id="st">Conectando…</div>
     </div>
     <div id="alerta"></div>
@@ -138,7 +143,9 @@ const fmt=h=>{const m=Math.round((h%1)*60);return Math.floor(h)+"h"+(m?String(m)
 const cat=t=>{t=(t||"").toLowerCase();for(const k in CATS)if(CATS[k].re.test(t))return k;return"out"};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const sobrepoe=(a,b)=>a!==b&&a.d===b.d&&a.s<b.e&&b.s<a.e;
-const conflito=e=>!e.all&&ev.some(o=>!o.all&&sobrepoe(e,o));
+let lv=(store.get("ag_livres")??"água,agua").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+const livre=e=>e.tr||lv.some(k=>(e.t||"").toLowerCase().includes(k));
+const conflito=e=>!e.all&&!livre(e)&&ev.some(o=>!o.all&&!livre(o)&&sobrepoe(e,o));
 const status=(m,c)=>{const s=$("st");s.textContent=m;s.className="note "+(c||"")};
 
 // ---- login ----
@@ -168,7 +175,7 @@ async function carregar(silencioso){
       const a=new Date(i.start.dateTime),b=new Date(i.end.dateTime);
       const d=Math.round((d0(a)-ws)/MS),s=a.getHours()+a.getMinutes()/60;
       let e=(b-d0(a))/36e5;if(e>24)e=24;
-      return{id:i.id,d,s,e:Math.max(e,s+.5),t,k:cat(t)}});
+      return{id:i.id,d,s,e:Math.max(e,s+.5),t,k:cat(t),tr:i.transparency==="transparent"}});
     status("Sincronizado com o Google Agenda às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),"ok");
     if(!silencioso)render();
     return"ok";
@@ -205,14 +212,14 @@ function render(){
     for(let h=1;h<HN-H0;h++){const l=document.createElement("div");l.className="ln";l.style.top=h*PX+"px";col.appendChild(l)}
     if(d===hd&&hAgora>=H0&&hAgora<=HN){const n=document.createElement("div");n.className="now";n.style.top=(hAgora-H0)*PX+"px";col.appendChild(n)}
     const lista=tim.filter(e=>e.d===d);lay(lista);
-    lista.forEach(e=>{const x=document.createElement("div");x.className="ev"+(conflito(e)?" bad":"");
+    lista.forEach(e=>{const x=document.createElement("div");x.className="ev"+(conflito(e)?" bad":"")+(livre(e)?" livre":"");
       x.style.cssText="--c:"+CATS[e.k].c+";top:"+Math.max(0,(e.s-H0))*PX+"px;height:"+((e.e-e.s)*PX-2)+"px;left:calc("+e.l/e.n*100+"% + 2px);width:calc("+100/e.n+"% - 4px)";
       x.innerHTML="<b>"+fmt(e.s)+"</b> "+esc(e.t);x.title=fmt(e.s)+"–"+fmt(e.e)+" · "+e.t;col.appendChild(x)});
     cal.appendChild(col)});
   const hj=ev.filter(e=>!e.all&&e.d===hd).sort((a,b)=>a.s-b.s);
   $("hoje").innerHTML=hj.length?hj.map(e=>'<div class="li"><b>'+fmt(e.s)+"–"+fmt(e.e)+"</b><span>"+esc(e.t)+"</span></div>").join(""):'<div class="note" style="margin:0">'+(hd>=0&&hd<7?"Nada marcado.":"Hoje está fora da semana exibida.")+"</div>";
   let liv=[],c8=8;
-  if(hd>=0&&hd<7){hj.filter(e=>e.e>8&&e.s<20).forEach(e=>{if(e.s-c8>=1)liv.push([c8,e.s]);c8=Math.max(c8,e.e)});if(20-c8>=1)liv.push([c8,20])}
+  if(hd>=0&&hd<7){hj.filter(e=>!livre(e)&&e.e>8&&e.s<20).forEach(e=>{if(e.s-c8>=1)liv.push([c8,e.s]);c8=Math.max(c8,e.e)});if(20-c8>=1)liv.push([c8,20])}
   $("livres").innerHTML=liv.length?liv.map(b=>'<div class="li free"><b>'+fmt(b[0])+"–"+fmt(b[1])+"</b><span>"+(b[1]-b[0])+"h livre(s)</span></div>").join(""):'<div class="note" style="margin:0">Sem janelas de 1h ou mais.</div>';
   const cf=ev.filter(conflito);
   $("alerta").innerHTML=cf.length?'<div class="card alert">⚠️ Conflito de horário: '+cf.map(e=>DIAS[e.d]+" "+fmt(e.s)+" "+esc(e.t)).join(" × ")+"</div>":"";
@@ -233,7 +240,7 @@ function interpretar(s){
 function pre(){
   const s=$("txt").value.trim();if(!s)return;
   pend=interpretar(s);
-  const d=Math.round((pend.dt-ws)/MS),temC=ev.some(o=>!o.all&&o.d===d&&o.s<pend.e&&pend.s<o.e);
+  const d=Math.round((pend.dt-ws)/MS),temC=!livre(pend)&&ev.some(o=>!o.all&&!livre(o)&&o.d===d&&o.s<pend.e&&pend.s<o.e);
   $("prev").innerHTML='<div class="card prev" style="margin:10px 0 0"><b>'+esc(pend.t)+"</b><br>"+pend.dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit"})+" · "+fmt(pend.s)+"–"+fmt(pend.e)+" · "+CATS[cat(pend.t)].n+
     (temC?'<div style="color:var(--bad)">⚠️ Conflita com outro compromisso desta semana.</div>':"")+
     '<div class="row" style="margin-top:8px"><button class="p" id="ok">Salvar no Google Agenda</button><button id="no">Cancelar</button></div></div>';
@@ -262,6 +269,8 @@ $("hj").onclick=()=>{cur=hoje0();const n=segunda(cur);if(n.getTime()!==ws.getTim
 $("vd").onclick=()=>{vista="dia";store.set("ag_vista",vista);render()};
 $("vs").onclick=()=>{vista="sem";store.set("ag_vista",vista);render()};
 $("rec").onclick=()=>carregar();
+$("lvtxt").value=lv.join(", ");
+$("lvsave").onclick=()=>{lv=$("lvtxt").value.split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);store.set("ag_livres",lv.join(","));render()};
 $("add").onclick=pre;
 $("txt").addEventListener("keydown",e=>{if(e.key==="Enter")pre()});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&tok&&!$("app").hidden)carregar()});
