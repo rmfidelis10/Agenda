@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha Agenda</title>
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda">
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--tx:#161b22;--mu:#667085;--bd:#e4e7ec;--ac:#2563eb;--ac2:#1d4ed8;--bad:#dc2626;--ok:#059669;--sh:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
+--c-trab:#2563eb;--c-fid:#059669;--c-est:#d97706;--c-trn:#9333ea;--c-out:#667085}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--tx:#e6edf3;--mu:#8b949e;--bd:#2a313a;--ac:#4f8cff;--ac2:#3b7bf5;--bad:#f87171;--ok:#34d399;--sh:none;--c-trab:#60a5fa;--c-fid:#34d399;--c-est:#fbbf24;--c-trn:#c084fc;--c-out:#9aa4b0}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 12px}
+button:active{transform:scale(.98)}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+input[type=text],input[type=password]{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+input:focus{outline:2px solid color-mix(in srgb,var(--ac) 45%,transparent);border-color:var(--ac)}
+
+/* login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+ padding-top:calc(24px + env(safe-area-inset-top,0px));background:linear-gradient(160deg,#2563eb,#1e40af 70%)}
+.lc{width:100%;max-width:360px;background:var(--card);border-radius:20px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.25);text-align:center}
+.lc img{width:72px;height:72px;border-radius:18px;margin-bottom:10px}
+.lc h1{font-size:22px;margin:0 0 4px}.lc p{margin:0 0 18px;color:var(--mu);font-size:14px}
+.lc button{width:100%;margin-top:12px;padding:12px}
+#lerr{color:var(--bad);font-size:13px;min-height:18px;margin-top:10px}
+
+/* app */
+.top{position:sticky;top:0;z-index:20;background:var(--ac);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px}
+.top .in{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.top h1{font-size:18px;margin:0}.top .sub{font-size:12px;opacity:.85;text-transform:capitalize}
+.top button{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.25);color:#fff;padding:6px 11px}
+.top button.on{background:#fff;color:var(--ac);font-weight:600}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.wrap{max-width:1100px;margin:0 auto;padding:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)}
+.row{display:flex;gap:8px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid var(--bd);font-size:13px;cursor:pointer;user-select:none}
+.chip i{width:10px;height:10px;border-radius:50%}.chip.off{opacity:.4}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:860px){.grid2{grid-template-columns:290px 1fr}}
+h2{font-size:12px;margin:0 0 8px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+.li{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.li:last-child{border:0}.li b{min-width:92px}.free{color:var(--ok)}
+.alert{border-color:var(--bad);color:var(--bad);font-size:14px}
+.prev{border-color:var(--ac)}
+.scroll{overflow-x:auto}
+.cal{display:grid}
+.hd{text-align:center;padding:6px 0;font-size:13px;border-bottom:1px solid var(--bd)}
+.hd.today{color:var(--ac);font-weight:700}
+.ad{border-bottom:1px solid var(--bd);border-left:1px solid var(--bd);min-height:22px;padding:2px;font-size:11px}
+.ad span{display:block;border-radius:4px;padding:1px 4px;margin-bottom:2px;background:color-mix(in srgb,var(--c) 25%,transparent);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.hrs div{height:44px;font-size:11px;color:var(--mu);text-align:right;padding-right:6px}
+.col{position:relative;border-left:1px solid var(--bd)}
+.col.today{background:color-mix(in srgb,var(--ac) 6%,transparent)}
+.ln{position:absolute;left:0;right:0;border-top:1px solid var(--bd);opacity:.5}
+.now{position:absolute;left:0;right:0;border-top:2px solid var(--bad);z-index:3}
+.ev{position:absolute;border-radius:7px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,var(--card));color:var(--tx)}
+.ev.bad{outline:2px solid var(--bad)}
+.note{font-size:12px;color:var(--mu);margin-top:8px}
+#st.ok{color:var(--ok)}#st.err{color:var(--bad)}
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div class="login" id="login">
+  <form class="lc" id="lf" autocomplete="on">
+    <img src="icon-192.png" alt="">
+    <h1>Minha Agenda</h1>
+    <p>Entre para ver e criar seus compromissos</p>
+    <input type="text" name="username" value="ricardo" autocomplete="username" hidden>
+    <input type="password" id="senha" placeholder="Senha" autocomplete="current-password" required>
+    <button class="p" type="submit" id="entrar">Entrar</button>
+    <div id="lerr"></div>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" hidden>
+  <div class="top"><div class="in">
+    <div><h1>📅 Minha Agenda</h1><div class="sub" id="semana"></div></div>
+    <div class="bar">
+      <button id="ant" aria-label="Anterior">‹</button><button id="hj">Hoje</button><button id="prox" aria-label="Próximo">›</button>
+      <button id="vd">Dia</button><button id="vs">Semana</button>
+      <button id="rec" aria-label="Atualizar">⟳</button><button id="sair">Sair</button>
+    </div>
+  </div></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row"><input type="text" id="txt" placeholder="Ex.: reunião com fornecedor amanhã às 14h" enterkeyhint="send"><button class="p" id="add">Adicionar</button></div>
+      <div id="prev"></div>
+      <div class="legend" id="legend"></div>
+      <div class="note" id="st">Conectando…</div>
+    </div>
+    <div id="alerta"></div>
+    <div class="grid2">
+      <div>
+        <div class="card"><h2>Hoje</h2><div id="hoje"></div></div>
+        <div class="card"><h2>Horários livres hoje</h2><div id="livres"></div></div>
+      </div>
+      <div class="card"><div class="scroll"><div class="cal" id="cal"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIGURAÇÃO =====
+const N8N="https://rmfidelis-n8n.ddns.net/webhook"; // base dos webhooks do n8n
+const REFRESH_MS=120000;                             // atualização automática (2 min)
+// A senha não fica no código: você digita na tela de login (é o mesmo token dos nós "Token OK?" do n8n).
+// ========================
+const CATS={trab:{n:"Cencosud",c:"var(--c-trab)",re:/fornecedor|reuni|negocia|compra|categoria|perini|gbarbosa|cencosud|ruptura|pre[çc]o/},
+fid:{n:"Fidelis Data",c:"var(--c-fid)",re:/power bi|n8n|cliente|dashboard|fidelis|automa/},
+est:{n:"Estudos",c:"var(--c-est)",re:/estud|python|aula|curso|prova/},
+trn:{n:"Treino",c:"var(--c-trn)",re:/treino|academia|corrida|muscula/},
+out:{n:"Outros",c:"var(--c-out)",re:/$^/}};
+const DIAS=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"],PX=44,MS=864e5;
+const $=id=>document.getElementById(id);
+const d0=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+const segunda=d=>{const x=d0(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+let tok=store.get("ag_tok")||"",cur=d0(new Date()),ws=segunda(cur),ev=[],off=new Set(),pend=null,timer=null;
+let vista=store.get("ag_vista")||(innerWidth<700?"dia":"sem");
+const hoje0=()=>d0(new Date());
+const fmt=h=>{const m=Math.round((h%1)*60);return Math.floor(h)+"h"+(m?String(m).padStart(2,"0"):"")};
+const cat=t=>{t=(t||"").toLowerCase();for(const k in CATS)if(CATS[k].re.test(t))return k;return"out"};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sobrepoe=(a,b)=>a!==b&&a.d===b.d&&a.s<b.e&&b.s<a.e;
+const conflito=e=>!e.all&&ev.some(o=>!o.all&&sobrepoe(e,o));
+const status=(m,c)=>{const s=$("st");s.textContent=m;s.className="note "+(c||"")};
+
+// ---- login ----
+function mostrarLogin(msg){$("app").hidden=true;$("login").hidden=false;$("lerr").textContent=msg||"";clearInterval(timer)}
+function mostrarApp(){$("login").hidden=true;$("app").hidden=false;clearInterval(timer);
+  timer=setInterval(()=>{if(!document.hidden&&!pend)carregar()},REFRESH_MS)}
+$("lf").addEventListener("submit",async e=>{
+  e.preventDefault();tok=$("senha").value;$("entrar").disabled=true;$("lerr").textContent="Entrando…";
+  const r=await carregar(true);$("entrar").disabled=false;
+  if(r==="ok"){store.set("ag_tok",tok);$("senha").value="";mostrarApp();render()}
+  else $("lerr").textContent=r==="401"?"Senha incorreta.":"Não consegui conectar ao servidor.";
+});
+$("sair").onclick=()=>{store.del("ag_tok");tok="";ev=[];mostrarLogin("")};
+
+// ---- leitura do Google Agenda (via n8n) ----
+async function carregar(silencioso){
+  const ini=ws.toISOString(),fim=new Date(ws.getTime()+7*MS).toISOString();
+  try{
+    const r=await fetch(N8N+"/agenda-eventos?token="+encodeURIComponent(tok)+"&inicio="+encodeURIComponent(ini)+"&fim="+encodeURIComponent(fim));
+    if(r.status===401){if(!silencioso)mostrarLogin("Sessão inválida. Entre novamente.");return"401"}
+    if(!r.ok)throw new Error("erro "+r.status);
+    const j=await r.json();
+    ev=(Array.isArray(j)?j:[j]).filter(i=>i&&i.id&&i.start).map(i=>{
+      const t=i.summary||"(sem título)";
+      if(i.start.date){const a=new Date(i.start.date+"T00:00:00"),b=new Date(i.end.date+"T00:00:00");
+        return{id:i.id,all:true,d:Math.round((a-ws)/MS),n:Math.max(1,Math.round((b-a)/MS)),t,k:cat(t)}}
+      const a=new Date(i.start.dateTime),b=new Date(i.end.dateTime);
+      const d=Math.round((d0(a)-ws)/MS),s=a.getHours()+a.getMinutes()/60;
+      let e=(b-d0(a))/36e5;if(e>24)e=24;
+      return{id:i.id,d,s,e:Math.max(e,s+.5),t,k:cat(t)}});
+    status("Sincronizado com o Google Agenda às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),"ok");
+    if(!silencioso)render();
+    return"ok";
+  }catch(err){status("Não consegui ler o Google Agenda ("+err.message+").","err");if(!silencioso)render();return"erro"}
+}
+
+function lay(list){list.sort((a,b)=>a.s-b.s||b.e-a.e);let c=null;
+  list.forEach(e=>{if(!c||e.s>=c.end)c={end:e.e,lanes:[]};
+    let l=c.lanes.findIndex(x=>x<=e.s);if(l<0){l=c.lanes.length;c.lanes.push(0)}
+    c.lanes[l]=e.e;e.l=l;e.c=c;c.end=Math.max(c.end,e.e)});
+  list.forEach(e=>e.n=e.c.lanes.length)}
+
+function render(){
+  const dia=vista==="dia",hd=Math.round((hoje0()-ws)/MS),fi=Math.round((cur-ws)/MS);
+  $("semana").textContent=dia?cur.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"}):
+    ws.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})+" – "+new Date(ws.getTime()+6*MS).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
+  $("vd").className=dia?"on":"";$("vs").className=dia?"":"on";
+  const lg=$("legend");lg.innerHTML="";
+  for(const k in CATS){const c=document.createElement("div");c.className="chip"+(off.has(k)?" off":"");
+    c.innerHTML='<i style="background:'+CATS[k].c+'"></i>'+CATS[k].n;
+    c.onclick=()=>{off.has(k)?off.delete(k):off.add(k);render()};lg.appendChild(c)}
+  const vis=ev.filter(e=>!off.has(e.k)),tim=vis.filter(e=>!e.all&&e.d>=0&&e.d<7);
+  const H0=Math.min(7,Math.floor(Math.min(99,...tim.map(e=>e.s)))),HN=Math.max(21,Math.ceil(Math.max(0,...tim.map(e=>e.e))));
+  const dias=dia?[fi]:[0,1,2,3,4,5,6],cal=$("cal");cal.innerHTML="";
+  cal.style.gridTemplateColumns="42px repeat("+dias.length+",1fr)";cal.style.minWidth=dia?"0":"700px";
+  cal.insertAdjacentHTML("beforeend",'<div class="hd"></div>');
+  dias.forEach(i=>cal.insertAdjacentHTML("beforeend",'<div class="hd'+(i===hd?" today":"")+'">'+DIAS[i]+" "+new Date(ws.getTime()+i*MS).getDate()+"</div>"));
+  cal.insertAdjacentHTML("beforeend",'<div class="ad"></div>');
+  dias.forEach(d=>cal.insertAdjacentHTML("beforeend",'<div class="ad">'+vis.filter(e=>e.all&&e.d<=d&&d<e.d+e.n).map(e=>'<span style="--c:'+CATS[e.k].c+'" title="'+esc(e.t)+'">'+esc(e.t)+"</span>").join("")+"</div>"));
+  let hrs='<div class="hrs">';for(let h=H0;h<HN;h++)hrs+="<div>"+h+"h</div>";cal.insertAdjacentHTML("beforeend",hrs+"</div>");
+  const agora=new Date(),hAgora=agora.getHours()+agora.getMinutes()/60;
+  dias.forEach(d=>{
+    const col=document.createElement("div");col.className="col"+(d===hd?" today":"");col.style.height=(HN-H0)*PX+"px";
+    for(let h=1;h<HN-H0;h++){const l=document.createElement("div");l.className="ln";l.style.top=h*PX+"px";col.appendChild(l)}
+    if(d===hd&&hAgora>=H0&&hAgora<=HN){const n=document.createElement("div");n.className="now";n.style.top=(hAgora-H0)*PX+"px";col.appendChild(n)}
+    const lista=tim.filter(e=>e.d===d);lay(lista);
+    lista.forEach(e=>{const x=document.createElement("div");x.className="ev"+(conflito(e)?" bad":"");
+      x.style.cssText="--c:"+CATS[e.k].c+";top:"+Math.max(0,(e.s-H0))*PX+"px;height:"+((e.e-e.s)*PX-2)+"px;left:calc("+e.l/e.n*100+"% + 2px);width:calc("+100/e.n+"% - 4px)";
+      x.innerHTML="<b>"+fmt(e.s)+"</b> "+esc(e.t);x.title=fmt(e.s)+"–"+fmt(e.e)+" · "+e.t;col.appendChild(x)});
+    cal.appendChild(col)});
+  const hj=ev.filter(e=>!e.all&&e.d===hd).sort((a,b)=>a.s-b.s);
+  $("hoje").innerHTML=hj.length?hj.map(e=>'<div class="li"><b>'+fmt(e.s)+"–"+fmt(e.e)+"</b><span>"+esc(e.t)+"</span></div>").join(""):'<div class="note" style="margin:0">'+(hd>=0&&hd<7?"Nada marcado.":"Hoje está fora da semana exibida.")+"</div>";
+  let liv=[],c8=8;
+  if(hd>=0&&hd<7){hj.filter(e=>e.e>8&&e.s<20).forEach(e=>{if(e.s-c8>=1)liv.push([c8,e.s]);c8=Math.max(c8,e.e)});if(20-c8>=1)liv.push([c8,20])}
+  $("livres").innerHTML=liv.length?liv.map(b=>'<div class="li free"><b>'+fmt(b[0])+"–"+fmt(b[1])+"</b><span>"+(b[1]-b[0])+"h livre(s)</span></div>").join(""):'<div class="note" style="margin:0">Sem janelas de 1h ou mais.</div>';
+  const cf=ev.filter(conflito);
+  $("alerta").innerHTML=cf.length?'<div class="card alert">⚠️ Conflito de horário: '+cf.map(e=>DIAS[e.d]+" "+fmt(e.s)+" "+esc(e.t)).join(" × ")+"</div>":"";
+}
+
+// ---- criar evento (com confirmação) ----
+function interpretar(s){
+  const low=s.toLowerCase();let dt=hoje0();
+  if(/amanh/.test(low))dt.setDate(dt.getDate()+1);
+  ["domingo","segunda","terça|terca","quarta","quinta","sexta","sábado|sabado"].forEach((r,i)=>{if(new RegExp(r).test(low)){const diff=(i-dt.getDay()+7)%7;dt=hoje0();dt.setDate(dt.getDate()+diff)}});
+  const dm=low.match(/(\d{1,2})\/(\d{1,2})/);if(dm)dt=new Date(hoje0().getFullYear(),+dm[2]-1,+dm[1]);
+  const m=low.match(/(\d{1,2})\s*(?:h|:)\s*(\d{2})?/),h=m?+m[1]+(m[2]?+m[2]/60:0):9;
+  const t=s.replace(/\s*(amanhã|amanha|hoje)\b/i,"").replace(/\s*(às|as)?\s*\d{1,2}\s*(h|:)\s*\d{0,2}/i,"").replace(/\s*\d{1,2}\/\d{1,2}/,"").replace(/\s*(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(-feira)?/i,"").trim()||s;
+  return{dt,s:h,e:h+1,t:t.charAt(0).toUpperCase()+t.slice(1)}
+}
+function pre(){
+  const s=$("txt").value.trim();if(!s)return;
+  pend=interpretar(s);
+  const d=Math.round((pend.dt-ws)/MS),temC=ev.some(o=>!o.all&&o.d===d&&o.s<pend.e&&pend.s<o.e);
+  $("prev").innerHTML='<div class="card prev" style="margin:10px 0 0"><b>'+esc(pend.t)+"</b><br>"+pend.dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit"})+" · "+fmt(pend.s)+"–"+fmt(pend.e)+" · "+CATS[cat(pend.t)].n+
+    (temC?'<div style="color:var(--bad)">⚠️ Conflita com outro compromisso desta semana.</div>':"")+
+    '<div class="row" style="margin-top:8px"><button class="p" id="ok">Salvar no Google Agenda</button><button id="no">Cancelar</button></div></div>';
+  $("ok").onclick=salvar;$("no").onclick=()=>{pend=null;$("prev").innerHTML=""};
+}
+async function salvar(){
+  const a=new Date(pend.dt);a.setHours(Math.floor(pend.s),Math.round((pend.s%1)*60),0,0);
+  const b=new Date(a.getTime()+(pend.e-pend.s)*36e5);
+  status("Salvando…");
+  try{
+    const r=await fetch(N8N+"/agenda-criar",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({token:tok,titulo:pend.t,inicio:a.toISOString(),fim:b.toISOString()})});
+    if(r.status===401){mostrarLogin("Sessão inválida. Entre novamente.");return}
+    if(!r.ok)throw new Error("erro "+r.status);
+    const alvo=pend.dt;$("txt").value="";$("prev").innerHTML="";pend=null;
+    cur=d0(alvo);ws=segunda(cur);await carregar();status("Evento salvo no Google Agenda ✓","ok");
+  }catch(err){status("Não consegui salvar ("+err.message+").","err")}
+}
+
+// ---- navegação ----
+function ir(dias){cur=new Date(cur.getTime()+dias*MS);cur=d0(cur);const n=segunda(cur);
+  if(n.getTime()!==ws.getTime()){ws=n;carregar()}else render()}
+$("ant").onclick=()=>ir(vista==="dia"?-1:-7);
+$("prox").onclick=()=>ir(vista==="dia"?1:7);
+$("hj").onclick=()=>{cur=hoje0();const n=segunda(cur);if(n.getTime()!==ws.getTime()){ws=n;carregar()}else render()};
+$("vd").onclick=()=>{vista="dia";store.set("ag_vista",vista);render()};
+$("vs").onclick=()=>{vista="sem";store.set("ag_vista",vista);render()};
+$("rec").onclick=()=>carregar();
+$("add").onclick=pre;
+$("txt").addEventListener("keydown",e=>{if(e.key==="Enter")pre()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&tok&&!$("app").hidden)carregar()});
+
+// ---- início ----
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+(async()=>{
+  if(!tok){mostrarLogin("");return}
+  const r=await carregar(true);
+  if(r==="401"){store.del("ag_tok");mostrarLogin("Sessão expirada. Entre novamente.");return}
+  mostrarApp();render();
+})();
+</script>
+</body>
+</html>
