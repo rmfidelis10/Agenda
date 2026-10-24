@@ -224,8 +224,10 @@ function interpretar(s){
   if(/amanh/.test(low))dt.setDate(dt.getDate()+1);
   ["domingo","segunda","terça|terca","quarta","quinta","sexta","sábado|sabado"].forEach((r,i)=>{if(new RegExp(r).test(low)){const diff=(i-dt.getDay()+7)%7;dt=hoje0();dt.setDate(dt.getDate()+diff)}});
   const dm=low.match(/(\d{1,2})\/(\d{1,2})/);if(dm)dt=new Date(hoje0().getFullYear(),+dm[2]-1,+dm[1]);
+  const dd=low.match(/\bdia\s+(\d{1,2})\b/);
+  if(dd&&!dm){const t0=hoje0();let x=new Date(t0.getFullYear(),t0.getMonth(),+dd[1]);if(x<t0)x=new Date(t0.getFullYear(),t0.getMonth()+1,+dd[1]);dt=x}
   const m=low.match(/(\d{1,2})\s*(?:h|:)\s*(\d{2})?/),h=m?+m[1]+(m[2]?+m[2]/60:0):9;
-  const t=s.replace(/\s*(amanhã|amanha|hoje)\b/i,"").replace(/\s*(às|as)?\s*\d{1,2}\s*(h|:)\s*\d{0,2}/i,"").replace(/\s*\d{1,2}\/\d{1,2}/,"").replace(/\s*(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(-feira)?/i,"").trim()||s;
+  const t=s.replace(/\s*\bdia\s+\d{1,2}\b/i,"").replace(/\s*(amanhã|amanha|hoje)\b/i,"").replace(/\s*(às|as)?\s*\d{1,2}\s*(h|:)\s*\d{0,2}/i,"").replace(/\s*\d{1,2}\/\d{1,2}/,"").replace(/\s*(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(-feira)?/i,"").trim()||s;
   return{dt,s:h,e:h+1,t:t.charAt(0).toUpperCase()+t.slice(1)}
 }
 function pre(){
