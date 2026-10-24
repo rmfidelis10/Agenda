@@ -68,6 +68,7 @@ h2{font-size:12px;margin:0 0 8px;color:var(--mu);text-transform:uppercase;letter
 .ev{position:absolute;border-radius:7px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,var(--card));color:var(--tx)}
 .ev.bad{outline:2px solid var(--bad)}
 .ev.livre{border-left-style:dashed;opacity:.7;background:color-mix(in srgb,var(--c) 8%,var(--card))}
+select{font:inherit;padding:7px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
 .ev,.adv{cursor:pointer}
 #pop{position:fixed;z-index:50;max-width:min(320px,calc(100vw - 24px));background:var(--card);color:var(--tx);border:1px solid var(--bd);border-left:4px solid var(--c,var(--ac));border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;pointer-events:none}
 #pop .m{color:var(--mu);margin-top:4px}
@@ -147,8 +148,13 @@ const fmt=h=>{const m=Math.round((h%1)*60);return Math.floor(h)+"h"+(m?String(m)
 const cat=t=>{t=(t||"").toLowerCase();for(const k in CATS)if(CATS[k].re.test(t))return k;return"out"};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const sobrepoe=(a,b)=>a!==b&&a.d===b.d&&a.s<b.e&&b.s<a.e;
-let lv=(store.get("ag_livres")??"água,agua").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
-const livre=e=>e.tr||lv.some(k=>(e.t||"").toLowerCase().includes(k));
+const LV_PAD="água,agua,remédio,remedio,colesterol";
+let lvRaw=store.get("ag_livres");
+if(store.get("ag_lv2")!=="1"){lvRaw=[...new Set((LV_PAD+","+(lvRaw||"")).split(",").map(x=>x.trim().toLowerCase()).filter(Boolean))].join(",");store.set("ag_livres",lvRaw);store.set("ag_lv2","1")}
+let lv=(lvRaw??LV_PAD).split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+const kw=e=>lv.some(k=>(e.t||"").toLowerCase().includes(k));
+let forcar=new Set((store.get("ag_forcar")||"").split(",").filter(Boolean));
+const livre=e=>!forcar.has(e.id)&&(e.tr||kw(e));
 const conflito=e=>!e.all&&!livre(e)&&ev.some(o=>!o.all&&!livre(o)&&sobrepoe(e,o));
 const status=(m,c)=>{const s=$("st");s.textContent=m;s.className="note "+(c||"")};
 
@@ -244,11 +250,15 @@ function interpretar(s){
 }
 function pre(){
   const s=$("txt").value.trim();if(!s)return;
-  pend=interpretar(s);
-  const d=Math.round((pend.dt-ws)/MS),temC=!livre(pend)&&ev.some(o=>!o.all&&!livre(o)&&o.d===d&&o.s<pend.e&&pend.s<o.e);
+  pend=interpretar(s);pend.livre=kw(pend);
   $("prev").innerHTML='<div class="card prev" style="margin:10px 0 0"><b>'+esc(pend.t)+"</b><br>"+pend.dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit"})+" · "+fmt(pend.s)+"–"+fmt(pend.e)+" · "+CATS[cat(pend.t)].n+
-    (temC?'<div style="color:var(--bad)">⚠️ Conflita com outro compromisso desta semana.</div>':"")+
-    '<div class="row" style="margin-top:8px"><button class="p" id="ok">Salvar no Google Agenda</button><button id="no">Cancelar</button></div></div>';
+    '<div class="row" style="margin-top:10px;align-items:center"><label for="bq">Bloqueia o horário?</label><select id="bq"><option value="1">Sim</option><option value="0">Não</option></select></div><div id="cfm"></div>'+
+    '<div class="row" style="margin-top:10px"><button class="p" id="ok">Salvar no Google Agenda</button><button id="no">Cancelar</button></div></div>';
+  $("bq").value=pend.livre?"0":"1";
+  const conf=()=>{pend.livre=$("bq").value==="0";const d=Math.round((pend.dt-ws)/MS);
+    const temC=!pend.livre&&ev.some(o=>!o.all&&!livre(o)&&o.d===d&&o.s<pend.e&&pend.s<o.e);
+    $("cfm").innerHTML=temC?'<div style="color:var(--bad);margin-top:6px">⚠️ Conflita com outro compromisso desta semana.</div>':""};
+  $("bq").onchange=conf;conf();
   $("ok").onclick=salvar;$("no").onclick=()=>{pend=null;$("prev").innerHTML=""};
 }
 async function salvar(){
@@ -257,9 +267,11 @@ async function salvar(){
   status("Salvando…");
   try{
     const r=await fetch(N8N+"/agenda-criar",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({token:tok,titulo:pend.t,inicio:a.toISOString(),fim:b.toISOString()})});
+      body:JSON.stringify({token:tok,titulo:pend.t,inicio:a.toISOString(),fim:b.toISOString(),livre:!!pend.livre})});
     if(r.status===401){mostrarLogin("Sessão inválida. Entre novamente.");return}
     if(!r.ok)throw new Error("erro "+r.status);
+    const j=await r.json().catch(()=>({}));
+    if(!pend.livre&&kw(pend)&&j.id){forcar.add(j.id);store.set("ag_forcar",[...forcar].join(","))}
     const alvo=pend.dt;$("txt").value="";$("prev").innerHTML="";pend=null;
     cur=d0(alvo);ws=segunda(cur);await carregar();status("Evento salvo no Google Agenda ✓","ok");
   }catch(err){status("Não consegui salvar ("+err.message+").","err")}
