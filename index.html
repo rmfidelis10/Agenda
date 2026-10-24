@@ -68,6 +68,11 @@ h2{font-size:12px;margin:0 0 8px;color:var(--mu);text-transform:uppercase;letter
 .ev{position:absolute;border-radius:7px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,var(--card));color:var(--tx)}
 .ev.bad{outline:2px solid var(--bad)}
 .ev.livre{border-left-style:dashed;opacity:.7;background:color-mix(in srgb,var(--c) 8%,var(--card))}
+.mod{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:700px){.mod{align-items:center}}
+.sheet{background:var(--card);color:var(--tx);width:100%;max-width:420px;border-radius:16px 16px 0 0;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));border-left:5px solid var(--c,var(--ac))}
+@media(min-width:700px){.sheet{border-radius:16px}}
+.sheet .m{color:var(--mu);margin-top:4px;font-size:14px}
 select{font:inherit;padding:7px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
 .ev,.adv{cursor:pointer}
 #pop{position:fixed;z-index:50;max-width:min(320px,calc(100vw - 24px));background:var(--card);color:var(--tx);border:1px solid var(--bd);border-left:4px solid var(--c,var(--ac));border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;pointer-events:none}
@@ -125,6 +130,11 @@ details.cfg{margin-top:10px;font-size:13px}details.cfg summary{cursor:pointer;co
 </div>
 
 <div id="pop" hidden></div>
+<div class="mod" id="mod" hidden><div class="sheet" id="sheet">
+  <div id="modc"></div>
+  <div class="row" style="margin-top:14px"><button id="mdel" style="flex:1">Apagar evento</button><button id="mfec" style="flex:1">Fechar</button></div>
+  <div class="note" id="mmsg"></div>
+</div></div>
 <script>
 // ===== CONFIGURAÇÃO =====
 const N8N="https://rmfidelis-n8n.ddns.net/webhook"; // base dos webhooks do n8n
@@ -293,7 +303,33 @@ function mostrarPop(el){
 }
 $("cal").addEventListener("mouseover",e=>{const a=alvo(e.target);if(a&&temHover())mostrarPop(a)});
 $("cal").addEventListener("mouseout",e=>{if(alvo(e.target))pop.hidden=true});
-document.addEventListener("click",e=>{const a=alvo(e.target);if(a&&!temHover())mostrarPop(a);else pop.hidden=true});
+document.addEventListener("click",e=>{const a=alvo(e.target);pop.hidden=true;if(a)abrirMod(a)});
+// ---- detalhes do evento e exclusão ----
+let sel=null,confirma=false;
+function abrirMod(el){
+  const e=ev[+el.dataset.i];if(!e)return;sel=e;confirma=false;
+  const dt=new Date(ws.getTime()+e.d*MS).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit"});
+  $("sheet").style.setProperty("--c",CATS[e.k].c);
+  $("modc").innerHTML='<b style="font-size:17px;overflow-wrap:anywhere">'+esc(e.t)+'</b><div class="m">'+dt+(e.all?" · dia inteiro":" · "+fmt(e.s)+"–"+fmt(e.e))+'</div><div class="m">'+CATS[e.k].n+(livre(e)?" · não bloqueia horário":"")+"</div>"+(conflito(e)?'<div style="color:var(--bad);margin-top:6px">⚠️ Conflito de horário</div>':"");
+  const b=$("mdel");b.textContent="Apagar evento";b.style.background="";b.style.color="var(--bad)";b.disabled=false;
+  $("mmsg").textContent="";$("mod").hidden=false;
+}
+function fecharMod(){$("mod").hidden=true;sel=null}
+async function apagar(){
+  const b=$("mdel");b.disabled=true;$("mmsg").style.color="";$("mmsg").textContent="Apagando…";
+  try{
+    const r=await fetch(N8N+"/agenda-apagar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:tok,id:sel.id})});
+    if(r.status===401){fecharMod();mostrarLogin("Sessão inválida. Entre novamente.");return}
+    if(!r.ok)throw new Error("erro "+r.status);
+    fecharMod();await carregar();status("Evento apagado do Google Agenda ✓","ok");
+  }catch(err){b.disabled=false;$("mmsg").style.color="var(--bad)";$("mmsg").textContent="Não consegui apagar ("+err.message+")."}
+}
+$("mdel").onclick=function(){
+  if(!confirma){confirma=true;this.textContent="Confirmar exclusão";this.style.background="var(--bad)";this.style.color="#fff"}
+  else apagar()};
+$("mfec").onclick=fecharMod;
+$("mod").onclick=e=>{if(e.target===$("mod"))fecharMod()};
+addEventListener("keydown",e=>{if(e.key==="Escape")fecharMod()});
 addEventListener("scroll",()=>{pop.hidden=true},true);
 
 // ---- navegação ----
